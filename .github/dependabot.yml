@@ -1,0 +1,132 @@
+# Dependabot configuration for automated dependency updates
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "MyFitness/developers"
+    assignees:
+      - "MyFitness/security-team"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    # Group updates to reduce noise
+    groups:
+      production-dependencies:
+        applies-to: version-updates
+        dependency-type: "production"
+      development-dependencies:
+        applies-to: version-updates
+        dependency-type: "development"
+      react-ecosystem:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      testing-tools:
+        patterns:
+          - "jest*"
+          - "@testing-library/*"
+          - "playwright*"
+          - "@playwright/*"
+      next-ecosystem:
+        patterns:
+          - "next"
+          - "@next/*"
+          - "eslint-config-next"
+    # Security updates
+    allow:
+      - dependency-type: "all"
+    # Ignore specific dependencies
+    ignore:
+      - dependency-name: "react"
+        versions: ["19.x", "20.x"] # Stay on React 18 for now
+      - dependency-name: "node"
+        versions: ["21.x", "22.x"] # Stay on Node 20 LTS
+    # Configure version requirements
+    versioning-strategy: "increase"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "03:00"
+    reviewers:
+      - "MyFitness/devops"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    # Group all action updates together
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "03:00"
+    reviewers:
+      - "MyFitness/devops"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "automated"
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    # Only allow patch and minor updates for base images
+    allow:
+      - dependency-type: "all"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
+
+  # Enable security updates for pip (if Python scripts are added)
+  - package-ecosystem: "pip"
+    directory: "/scripts"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "03:00"
+    reviewers:
+      - "MyFitness/developers"
+    labels:
+      - "dependencies"
+      - "python"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Only track security updates
+    open-pull-requests-limit: 0
+    allow:
+      - dependency-type: "all"
+        update-types: ["version-update:semver-patch"]
+
+# Configuration for security vulnerability alerts
+# These settings apply to all ecosystems
+registries:
+  npm-github:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{ secrets.GITHUB_TOKEN }}

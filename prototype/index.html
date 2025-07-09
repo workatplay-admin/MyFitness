@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFitness - Interactive Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
+        
+        .screen {
+            display: none;
+            min-height: 100vh;
+            background: #f8fafc;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        .goal-card {
+            transition: all 0.3s ease;
+        }
+        
+        .goal-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-bar {
+            transition: width 0.8s ease;
+        }
+        
+        .streak-flame {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .btn-primary {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .selected {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .celebration {
+            animation: celebrate 1s ease-out;
+        }
+        
+        @keyframes celebrate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Landing Page -->
+    <div id="landing" class="screen active">
+        <div class="min-h-screen flex flex-col">
+            <!-- Header -->
+            <header class="bg-white shadow-sm px-4 py-4">
+                <div class="max-w-6xl mx-auto flex justify-between items-center">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl">🏃‍♂️</span>
+                        <h1 class="text-xl font-bold text-gray-900">MyFitness</h1>
+                    </div>
+                    <div class="hidden md:flex space-x-4">
+                        <button class="text-gray-600 hover:text-gray-900">Login</button>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Get Started</button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Hero Section -->
+            <main class="flex-1 flex items-center justify-center px-4">
+                <div class="max-w-2xl text-center">
+                    <h2 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+                        🎯 Define. Track. <span class="text-blue-600">Achieve.</span>
+                    </h2>
+                    <p class="text-xl text-gray-600 mb-8">
+                        The simplest way to reach your fitness goals.
+                    </p>
+                    
+                    <button id="tryDemoBtn" class="btn-primary bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 mb-8">
+                        Try Demo (No Account Needed)
+                    </button>
+                    
+                    <!-- Benefits -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                            <div class="text-3xl mb-3">✅</div>
+                            <h3 class="font-semibold mb-2">SMART Goals</h3>
+                            <p class="text-gray-600 text-sm">Set specific, measurable, achievable targets</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                            <div class="text-3xl mb-3">📊</div>
+                            <h3 class="font-semibold mb-2">Visual Progress</h3>
+                            <p class="text-gray-600 text-sm">Track your journey with beautiful charts</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                            <div class="text-3xl mb-3">🔥</div>
+                            <h3 class="font-semibold mb-2">Streak Tracking</h3>
+                            <p class="text-gray-600 text-sm">Stay motivated with consistency rewards</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            
+            <!-- Footer -->
+            <footer class="bg-white border-t px-4 py-6">
+                <div class="max-w-6xl mx-auto text-center text-gray-600 text-sm">
+                    <div class="space-x-6">
+                        <a href="#" class="hover:text-gray-900">Privacy</a>
+                        <a href="#" class="hover:text-gray-900">Terms</a>
+                        <a href="#" class="hover:text-gray-900">Support</a>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Goal Creation Step 1 -->
+    <div id="goalCreation1" class="screen">
+        <div class="min-h-screen bg-gray-50">
+            <!-- Header -->
+            <header class="bg-white shadow-sm px-4 py-4">
+                <div class="max-w-2xl mx-auto flex justify-between items-center">
+                    <button id="backToLanding" class="text-gray-600 hover:text-gray-900">
+                        ← Back
+                    </button>
+                    <h1 class="text-lg font-semibold">Create New Goal</h1>
+                    <span class="text-sm text-gray-500">1/4</span>
+                </div>
+            </header>
+            
+            <!-- Progress Indicator -->
+            <div class="max-w-2xl mx-auto px-4 py-4">
+                <div class="flex space-x-2">
+                    <div class="w-8 h-2 bg-blue-600 rounded-full"></div>
+                    <div class="w-8 h-2 bg-gray-300 rounded-full"></div>
+                    <div class="w-8 h-2 bg-gray-300 rounded-full"></div>
+                    <div class="w-8 h-2 bg-gray-300 rounded-full"></div>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="max-w-2xl mx-auto px-4 py-8">
+                <h2 class="text-2xl font-bold mb-2">What type of goal?</h2>
+                <p class="text-gray-600 mb-8">Choose the category that best fits your fitness objective.</p>
+                
+                <div class="space-y-4">
+                    <div class="goal-type-card bg-white p-6 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 hover:bg-gray-50" data-type="strength">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <span class="text-2xl">💪</span>
+                                    <h3 class="text-lg font-semibold">Strength</h3>
+                                </div>
+                                <p class="text-gray-600">Build muscle, lift heavier weights</p>
+                            </div>
+                            <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                                <span class="checkmark text-white text-sm hidden">✓</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="goal-type-card bg-white p-6 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 hover:bg-gray-50" data-type="cardio">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <span class="text-2xl">🏃‍♂️</span>
+                                    <h3 class="text-lg font-semibold">Cardio</h3>
+                                </div>
+                                <p class="text-gray-600">Improve endurance, run faster/further</p>
+                            </div>
+                            <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                                <span class="checkmark text-white text-sm hidden">✓</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="goal-type-card bg-white p-6 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 hover:bg-gray-50" data-type="body">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <span class="text-2xl">📏</span>
+                                    <h3 class="text-lg font-semibold">Body</h3>
+                                </div>
+                                <p class="text-gray-600">Track weight, measurements, body changes</p>
+                            </div>
+                            <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                                <span class="checkmark text-white text-sm hidden">✓</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="goal-type-card bg-white p-6 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 hover:bg-gray-50" data-type="habit">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <span class="text-2xl">🎯</span>
+                                    <h3 class="text-lg font-semibold">Habit</h3>
+                                </div>
+                                <p class="text-gray-600">Build consistency, daily routines</p>
+                            </div>
+                            <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                                <span class="checkmark text-white text-sm hidden">✓</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
+                <div class="max-w-2xl mx-auto flex justify-between">
+                    <button id="backFromGoal1" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Back
+                    </button>
+                    <button id="nextFromGoal1" class="px-6 py-3 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed" disabled>
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Goal Creation Step 2 -->
+    <div id="goalCreation2" class="screen">
+        <div class="min-h-screen bg-gray-50">
+            <!-- Header -->
+            <header class="bg-white shadow-sm px-4 py-4">
+                <div class="max-w-2xl mx-auto flex justify-between items-center">
+                    <button id="backToGoal1" class="text-gray-600 hover:text-gray-900">
+                        ← Back
+                    </button>
+                    <h1 class="text-lg font-semibold">Create New Goal</h1>
+                    <span class="text-sm text-gray-500">2/4</span>
+                </div>
+            </header>
+            
+            <!-- Progress Indicator -->
+            <div class="max-w-2xl mx-auto px-4 py-4">
+                <div class="flex space-x-2">
+                    <div class="w-8 h-2 bg-blue-600 rounded-full"></div>
+                    <div class="w-8 h-2 bg-blue-600 rounded-full"></div>
+                    <div class="w-8 h-2 bg-gray-300 rounded-full"></div>
+                    <div class="w-8 h-2 bg-gray-300 rounded-full"></div>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="max-w-2xl mx-auto px-4 py-8">
+                <h2 class="text-2xl font-bold mb-2">
+                    <span id="goalTypeIcon">💪</span> <span id="goalTypeText">Strength</span> Goal Details
+                </h2>
+                <p class="text-gray-600 mb-8">What specifically do you want to achieve?</p>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Goal Description</label>
+                        <textarea id="goalDescription" 
+                                  class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  rows="3"
+                                  placeholder="e.g., Bench press 100kg for 5 reps"
+                                  maxlength="200"></textarea>
+                        <div class="flex justify-between text-sm text-gray-500 mt-1">
+                            <span>Be specific and measurable</span>
+                            <span id="charCount">0/200</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-blue-900 mb-2">Examples for <span id="exampleGoalType">Strength</span> goals:</h3>
+                        <ul class="text-sm text-blue-800 space-y-1" id="examplesList">
+                            <li class="cursor-pointer hover:text-blue-600 example-item">"Deadlift 2x my body weight (160kg)"</li>
+                            <li class="cursor-pointer hover:text-blue-600 example-item">"Complete 20 pull-ups in a row"</li>
+                            <li class="cursor-pointer hover:text-blue-600 example-item">"Squat 120kg for 10 reps"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
+                <div class="max-w-2xl mx-auto flex justify-between">
+                    <button id="backFromGoal2" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Back
+                    </button>
+                    <button id="nextFromGoal2" class="px-6 py-3 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed" disabled>
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard -->
+    <div id="dashboard" class="screen">
+        <div class="min-h-screen bg-gray-50">
+            <!-- Header -->
+            <header class="bg-white shadow-sm px-4 py-4">
+                <div class="max-w-4xl mx-auto flex justify-between items-center">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl">🏃‍♂️</span>
+                        <h1 class="text-lg font-bold">MyFitness</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="p-2 text-gray-600 hover:text-gray-900">
+                            <span class="text-xl">👤</span>
+                        </button>
+                        <button class="p-2 text-gray-600 hover:text-gray-900">
+                            <span class="text-xl">📊</span>
+                        </button>
+                        <button class="p-2 text-gray-600 hover:text-gray-900">
+                            <span class="text-xl">⚙️</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Main Content -->
+            <div class="max-w-4xl mx-auto px-4 py-6">
+                <!-- Streak Display -->
+                <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white p-6 rounded-lg mb-6 text-center">
+                    <div class="text-3xl font-bold mb-2">
+                        <span class="streak-flame">🔥</span> <span id="streakDays">7</span> days
+                    </div>
+                    <div class="text-sm opacity-90">Current Streak</div>
+                </div>
+                
+                <!-- Goals Section -->
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Active Goals (<span id="activeGoalsCount">2</span>/5)</h2>
+                    <button id="createGoalBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        + New Goal
+                    </button>
+                </div>
+                
+                <!-- Goal Cards -->
+                <div class="space-y-4 mb-6" id="goalsList">
+                    <!-- Goal cards will be populated by JavaScript -->
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="addProgressBtn" class="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 text-center">
+                        <div class="text-2xl mb-2">📈</div>
+                        <div class="font-semibold">Add Progress</div>
+                    </button>
+                    
+                    <button id="exportDataBtn" class="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 text-center">
+                        <div class="text-2xl mb-2">📤</div>
+                        <div class="font-semibold">Export Data</div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Bottom Navigation -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t">
+                <div class="max-w-4xl mx-auto flex justify-around py-2">
+                    <button class="flex flex-col items-center py-2 px-4 text-blue-600">
+                        <span class="text-xl">🎯</span>
+                        <span class="text-xs">Goals</span>
+                    </button>
+                    <button class="flex flex-col items-center py-2 px-4 text-gray-600">
+                        <span class="text-xl">📊</span>
+                        <span class="text-xs">Progress</span>
+                    </button>
+                    <button class="flex flex-col items-center py-2 px-4 text-gray-600">
+                        <span class="text-xl">📤</span>
+                        <span class="text-xs">Export</span>
+                    </button>
+                    <button class="flex flex-col items-center py-2 px-4 text-gray-600">
+                        <span class="text-xl">⚙️</span>
+                        <span class="text-xs">Settings</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Entry -->
+    <div id="progressEntry" class="screen">
+        <div class="min-h-screen bg-gray-50">
+            <!-- Header -->
+            <header class="bg-white shadow-sm px-4 py-4">
+                <div class="max-w-2xl mx-auto flex justify-between items-center">
+                    <button id="backToDashboard" class="text-gray-600 hover:text-gray-900">
+                        ← Back
+                    </button>
+                    <h1 class="text-lg font-semibold">Add Progress</h1>
+                    <div></div>
+                </div>
+            </header>
+            
+            <!-- Content -->
+            <div class="max-w-2xl mx-auto px-4 py-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                    <h2 class="text-lg font-semibold mb-2">Goal: <span id="currentGoalTitle">Bench Press 100kg</span></h2>
+                    <p class="text-gray-600 text-sm">Target: <span id="currentGoalTarget">100kg by Feb 15, 2025</span></p>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold mb-4">Today's Progress</h3>
+                    
+                    <div class="mb-6">
+                        <div class="relative">
+                            <input type="number" 
+                                   id="progressValue" 
+                                   class="w-full text-4xl font-bold text-center py-8 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                                   placeholder="85"
+                                   min="0"
+                                   step="0.1">
+                            <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+                                <select id="progressUnit" class="bg-transparent border-none text-lg focus:outline-none">
+                                    <option value="kg">kg</option>
+                                    <option value="lbs">lbs</option>
+                                    <option value="reps">reps</option>
+                                    <option value="km">km</option>
+                                    <option value="miles">miles</option>
+                                    <option value="minutes">min</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Add a note (optional)</label>
+                        <textarea id="progressNote" 
+                                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  rows="3"
+                                  placeholder="How did it feel? Any observations..."
+                                  maxlength="140"></textarea>
+                        <div class="text-right text-sm text-gray-500 mt-1">
+                            <span id="noteCharCount">0/140</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-medium text-sm mb-3">Recent entries:</h4>
+                        <div class="space-y-2 text-sm" id="recentEntries">
+                            <!-- Recent entries will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <button id="saveProgressBtn" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                        Save Progress
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Chart -->
+    <div id="progressChart" class="screen">
+        <div class="min-h-screen bg-gray-50">
+            <!-- Header -->
+            <header class="bg-white shadow-sm px-4 py-4">
+                <div class="max-w-4xl mx-auto flex justify-between items-center">
+                    <button id="backFromChart" class="text-gray-600 hover:text-gray-900">
+                        ← Back
+                    </button>
+                    <h1 class="text-lg font-semibold" id="chartGoalTitle">Bench Press 100kg</h1>
+                    <div></div>
+                </div>
+            </header>
+            
+            <!-- Content -->
+            <div class="max-w-4xl mx-auto px-4 py-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                    <h2 class="text-lg font-semibold mb-4">Progress Chart</h2>
+                    
+                    <!-- Time Range Selector -->
+                    <div class="flex space-x-2 mb-6">
+                        <button class="time-range-btn px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 active" data-range="7d">7D</button>
+                        <button class="time-range-btn px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50" data-range="1m">1M</button>
+                        <button class="time-range-btn px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50" data-range="3m">3M</button>
+                        <button class="time-range-btn px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50" data-range="all">All</button>
+                    </div>
+                    
+                    <!-- Chart Container -->
+                    <div class="h-64 mb-6">
+                        <canvas id="progressChartCanvas"></canvas>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Current:</span>
+                            <span class="font-semibold">85kg (85%)</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Target:</span>
+                            <span>100kg by Feb 15</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Trend:</span>
+                            <span class="text-green-600">+2.5kg/week</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="exportFromChart" class="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 text-center">
+                        <div class="font-semibold">Export Data</div>
+                    </button>
+                    
+                    <button id="addProgressFromChart" class="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 text-center">
+                        <div class="font-semibold">Add Progress</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

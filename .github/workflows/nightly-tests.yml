@@ -1,0 +1,297 @@
+name: Nightly Tests
+
+on:
+  schedule:
+    # Run at 2 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  NODE_ENV: test
+  DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+jobs:
+  performance-regression:
+    name: Performance Regression Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Run Lighthouse CI tests
+        run: |
+          npm install -g @lhci/cli
+          lhci autorun
+        env:
+          LHCI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results
+          path: .lighthouseci
+          retention-days: 30
+
+  load-testing:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: myfitnesstest
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Setup database
+        run: |
+          npx prisma migrate deploy
+          npx prisma db seed
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/myfitnesstest
+          
+      - name: Build application
+        run: npm run build
+        
+      - name: Start server
+        run: |
+          npm start &
+          sleep 10 # Wait for server to start
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/myfitnesstest
+          
+      - name: Install k6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          
+      - name: Run load tests
+        run: |
+          k6 run scripts/load-tests.js --out json=results.json
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results
+          path: results.json
+          retention-days: 30
+
+  security-audit:
+    name: Deep Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        
+      - name: Run Snyk security test
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=medium
+          
+      - name: Run OWASP dependency check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'MyFitness'
+          path: '.'
+          format: 'HTML'
+          
+      - name: Upload OWASP results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: owasp-results
+          path: reports
+          retention-days: 30
+
+  accessibility-audit:
+    name: Full Accessibility Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Start server
+        run: |
+          npm start &
+          sleep 10 # Wait for server to start
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          
+      - name: Run accessibility tests
+        run: npm run test:a11y
+        
+      - name: Generate accessibility report
+        run: |
+          npm install -g pa11y-ci
+          pa11y-ci --config .pa11yci.json
+          
+      - name: Upload accessibility results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: accessibility-results
+          path: |
+            test-results/
+            pa11y-results/
+          retention-days: 30
+
+  browser-compatibility:
+    name: Cross-Browser Testing
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Run E2E tests on ${{ matrix.browser }}
+        run: npm run test:e2e -- --project=${{ matrix.browser }}
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results-${{ matrix.browser }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+
+  notify-results:
+    name: Notify Test Results
+    runs-on: ubuntu-latest
+    needs: [performance-regression, load-testing, security-audit, accessibility-audit, browser-compatibility]
+    if: always()
+    steps:
+      - name: Check test status
+        id: test-status
+        run: |
+          if [[ "${{ needs.performance-regression.result }}" == "failure" || \
+                "${{ needs.load-testing.result }}" == "failure" || \
+                "${{ needs.security-audit.result }}" == "failure" || \
+                "${{ needs.accessibility-audit.result }}" == "failure" || \
+                "${{ needs.browser-compatibility.result }}" == "failure" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Send Slack notification
+        if: steps.test-status.outputs.status == 'failure'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "Nightly Tests Failed",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  {
+                    "title": "Performance Regression",
+                    "value": "${{ needs.performance-regression.result }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Load Testing",
+                    "value": "${{ needs.load-testing.result }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Security Audit",
+                    "value": "${{ needs.security-audit.result }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Accessibility Audit",
+                    "value": "${{ needs.accessibility-audit.result }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Browser Compatibility",
+                    "value": "${{ needs.browser-compatibility.result }}",
+                    "short": true
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

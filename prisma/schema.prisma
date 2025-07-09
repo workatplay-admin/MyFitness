@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  goals     Goal[]
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+model Goal {
+  id           String     @id @default(cuid())
+  userId       String
+  type         String     // STRENGTH, CARDIO, BODY, HABIT
+  description  String
+  targetDate   DateTime
+  frequency    String
+  status       String     @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progress     Progress[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([userId, description])
+  @@index([userId])
+  @@index([status])
+  @@index([targetDate])
+  @@map("goals")
+}
+
+model Progress {
+  id         String   @id @default(cuid())
+  goalId     String
+  value      Float
+  unit       String
+  note       String?
+  goal       Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  recordedAt DateTime @default(now())
+
+  @@index([goalId])
+  @@index([recordedAt])
+  @@map("progress")
+}

@@ -1,0 +1,73 @@
+{
+  "defaults": {
+    "concurrency": 4,
+    "standard": "WCAG2AA",
+    "runners": ["axe", "htmlcs"],
+    "timeout": 30000,
+    "wait": 1000,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox"]
+    },
+    "actions": [],
+    "headers": {
+      "Accept-Language": "en-US"
+    }
+  },
+  "urls": [
+    {
+      "url": "http://localhost:3000",
+      "name": "Home Page",
+      "actions": [
+        "wait for element body to be visible"
+      ]
+    },
+    {
+      "url": "http://localhost:3000/login",
+      "name": "Login Page",
+      "actions": [
+        "wait for element form to be visible"
+      ]
+    },
+    {
+      "url": "http://localhost:3000/dashboard",
+      "name": "Dashboard",
+      "actions": [
+        "wait for element main to be visible"
+      ]
+    },
+    {
+      "url": "http://localhost:3000/goals",
+      "name": "Goals Page",
+      "actions": [
+        "wait for element main to be visible"
+      ]
+    },
+    {
+      "url": "http://localhost:3000/workouts",
+      "name": "Workouts Page",
+      "actions": [
+        "wait for element main to be visible"
+      ]
+    },
+    {
+      "url": "http://localhost:3000/profile",
+      "name": "Profile Page",
+      "actions": [
+        "wait for element main to be visible"
+      ]
+    }
+  ],
+  "reporter": ["cli", "json", "html"],
+  "reporterOptions": {
+    "json": {
+      "fileName": "pa11y-results/report.json"
+    },
+    "html": {
+      "fileName": "pa11y-results/report.html"
+    }
+  }
+}
